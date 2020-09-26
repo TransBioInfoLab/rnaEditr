@@ -1,0 +1,46 @@
+Package: rnaEditr
+Title: Statistical analysis of RNA editing sites and hyper-editing regions
+Version: 0.99.0
+Authors@R: c(
+  person("Lanyu", "Zhang", email = "jennyzly2016@gmail.com", role = c("aut", "cre")),
+  person("Gabriel", "Odom", email = "gabriel.odom@fiu.edu", role = c("aut")),
+  person("Tiago", "Silva", email = "tiagochst@gmail.com", role = c("aut")),
+  person("Lissette", "Gomez", email = "lxg255@miami.edu", role = c("aut")),
+  person("Lily", "Wang", email = "lily.wangg@gmail.com", role = c("aut"))
+  )
+Description: RNAeditr analyzes site-specific RNA editing events, as well as
+  hyper-editing  regions. The editing frequencies can be tested against binary,
+  continuous or survival outcomes. Multiple covariate variables as well as
+  interaction effects can also be incorporated in the statistical models.
+Depends: R (>= 4.0)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
+Imports:
+    GenomicRanges,
+    IRanges,
+    BiocGenerics,
+    GenomeInfoDb,
+    bumphunter,
+    S4Vectors,
+    stats,
+    survival,
+    logistf,
+    plyr,
+    corrplot
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat
+biocViews:
+    GeneTarget,
+    Epigenetics,
+    DimensionReduction,
+    FeatureExtraction,
+    Regression,
+    Survival,
+    RNASeq
+VignetteBuilder: knitr
+URL: https://github.com/TransBioInfoLab/rnaEditr
+BugReports: https://github.com/TransBioInfoLab/rnaEditr/issues

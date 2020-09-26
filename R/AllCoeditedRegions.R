@@ -1,0 +1,172 @@
+#' Extracts contiguous co-edited genomic regions from input genomic regions
+#'   .
+#' 
+#' @description A wrapper function to extract contiguous co-edited genomic
+#'   regions from input genomic regions.
+#' 
+#' @param regions_gr A GRanges object of input genomic regions.
+#' @param rnaEditMatrix A matrix (or data frame) of RNA editing level values on
+#'   individual sites, with row names as site IDs in the form of
+#'   "chrAA:XXXXXXXX", and column names as sample IDs. Please make sure to
+#'   follow the format of example dataset (\code{data(rnaedit_df)}).
+#' @param output Type of output data. Defaults to \code{"GRanges"}.
+#' @param rDropThresh_num Threshold for minimum correlation between RNA editing
+#'   levels of one site and the mean RNA editing levels of the rest of the 
+#'   sites. Please set a number between 0 and 1. Defaults to 0.4.
+#' @param minPairCorr Threshold for minimum pairwise correlation of sites 
+#'   within a selected cluster. To use this filter, set a number between -1 and 
+#'   1 (defaults to 0.1). To select all clusters (i.e. no filter), please set 
+#'   this argument to -1.
+#' @param minSites Minimum number of sites to be considered as a region. Only
+#'   regions with more than \code{minSites} number of sites will be returned.
+#' @param method Method for computing correlation. Defaults to 
+#'   \code{"spearman"}.
+#' @param returnAllSites When no contiguous co-edited regions are found in
+#'   an input genomic region, \code{returnAllSites = TRUE} indicates
+#'   returning all the sites in the input region, while
+#'   \code{returnAllSites = FALSE} indicates not returning any site from
+#'   input region. Defaults to FALSE.
+#' @param progressBar Name of the progress bar to use. There are currently five
+#'   types of progress bars: \code{"time"}, \code{"none"}, \code{"text"},
+#'   \code{"tk"}, and \code{"win"}. Defaults to \code{"time"}. See
+#'   \code{\link[plyr]{create_progress_bar}} for more details.
+#' @param verbose Should messages and warnings be displayed? Defaults to FALSE,
+#'   but is set to TRUE when called from within \code{SingleCoeditedRegion()}.
+#'
+#' @return When \code{output} is set as \code{"GRanges"}, a GRanges object with 
+#'   \code{seqnames}, \code{ranges} and \code{strand} of the contiguous 
+#'   co-edited regions will be returned. When \code{output} is set as 
+#'   \code{"dataframe"}, a data frame with following columns will be returned:
+#'   \itemize{
+#'     \item{\code{site} : }{site ID.}
+#'     \item{\code{chr} : }{chromosome number.}
+#'     \item{\code{pos} : }{genomic position number.}
+#'     \item{\code{r_drop} : }{the correlation between RNA editing levels of 
+#'     one site and the mean RNA editing levels of the rest of the sites.}
+#'     \item{\code{keep} : }{indicator for co-edited sites, the sites with
+#'     \code{keep = 1} belong to the contiguous and co-edited region.}
+#'     \item{\code{keep_contiguous} : }{contiguous co-edited region number.}
+#'     \item{\code{regionMinPairwiseCor} : }{the pairwise correlation of a
+#'     subregion.}
+#'     \item{\code{keep_regionMinPairwiseCor} : }{indicator for contiguous
+#'     co-edited subregions, the regions with \code{keepminPairwiseCor = 1}
+#'     passed the minimum correlation and will be returned as a contiguous
+#'     co-edited subregion.}
+#'   }
+#' 
+#' @importFrom GenomicRanges makeGRangesFromDataFrame findOverlaps
+#' @importFrom plyr alply
+#' 
+#' @export
+#'
+#' @seealso \code{\link{TransformToGR}}, \code{\link{AllCloseByRegions}}, 
+#'   \code{\link{CreateEditingTable}}, \code{\link{SummarizeAllRegions}}, 
+#'   \code{\link{TestAssociations}}, \code{\link{AnnotateResults}}
+#'   
+#' @examples
+#'   data(rnaedit_df)
+#'   
+#'   genes_gr <- TransformToGR(
+#'     genes_char = c("PHACTR4", "CCR5", "METTL7A"),
+#'     type = "symbol",
+#'     genome = "hg19"
+#'   )
+#'   
+#'   AllCoeditedRegions(
+#'     regions_gr = genes_gr,
+#'     rnaEditMatrix = rnaedit_df,
+#'     output = "GRanges",
+#'     method = "spearman"
+#'   )
+#'    
+AllCoeditedRegions <- function(regions_gr,
+                               rnaEditMatrix,
+                               output = c("GRanges", "dataframe"),
+                               rDropThresh_num = 0.4,
+                               minPairCorr = 0.1,
+                               minSites = 3,
+                               method = c("spearman", "pearson"),
+                               returnAllSites = FALSE,
+                               progressBar = "time",
+                               verbose = TRUE){
+  
+  output <- match.arg(output)
+  method <- match.arg(method)
+  
+  # parallel <- register_cores(cores)
+  
+  sites_mat <- do.call(rbind, strsplit(row.names(rnaEditMatrix), split = ":"))
+  sites_df <- data.frame(
+    site = row.names(rnaEditMatrix),
+    chr = sites_mat[, 1],
+    pos = as.integer(sites_mat[, 2]),
+    stringsAsFactors = FALSE
+  )
+  
+  sites_gr <- makeGRangesFromDataFrame(
+    df = sites_df,
+    start.field = "pos",
+    end.field = "pos"
+  ) 
+  
+  hits <- data.frame(
+    findOverlaps(
+      query = regions_gr,
+      subject = sites_gr
+    )
+  )
+  
+  result_ls <- alply(
+    .data = unique(hits$queryHits),
+    .margins = 1,
+    .fun = function(idx){
+      SingleCoeditedRegion(
+        region_df = data.frame(regions_gr[idx]),
+        rnaEditMatrix = rnaEditMatrix[unique(hits$subjectHits),],
+        output = output,
+        rDropThresh_num = rDropThresh_num,
+        minPairCorr = minPairCorr,
+        minSites = minSites,
+        method = method,
+        returnAllSites = returnAllSites,
+        verbose = FALSE
+      )
+    },
+    # .parallel = parallel,
+    .progress = progressBar
+  )
+  
+  if (output == "GRanges") {
+    
+    # Delete null or duplicated elements in the list
+    result_ls <- unique(
+      result_ls[lengths(result_ls) > 0]
+    )
+    
+    # Turn the list of GRanges to a single GRanges
+    # We suppress warnings because the .Seqinfo.mergexy() function expects that
+    #   there will be an overlap between the combined ranges. This will never
+    #   be the case for us. The "c" method called here eventually dispatches to
+    #   this merge function internally. See below for more information:
+    # https://rdrr.io/bioc/GenomeInfoDb/src/R/Seqinfo-class.R
+    out <- suppressWarnings(Reduce("c", result_ls))
+    
+  } else {
+    
+    # We're using do.call() instead of Reduce() here since we are combining
+    #   list of data frames which will be faster to use do.call().
+    final_df <- do.call(rbind, result_ls)
+    
+    # Delete duplicated rows
+    # final_df <- unique(final_df)
+    
+    row.names(final_df) <- NULL
+    
+    out <- final_df
+    
+  }
+  
+  out
+  
+}
+

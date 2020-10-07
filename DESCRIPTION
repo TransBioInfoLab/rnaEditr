@@ -15,7 +15,7 @@ Description: RNAeditr analyzes site-specific RNA editing events, as well as
 Depends: R (>= 4.0)
 License: GPL-3
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 RoxygenNote: 7.1.1
 Imports:
     GenomicRanges,

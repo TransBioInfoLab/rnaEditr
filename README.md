@@ -13,8 +13,10 @@ within the co-edited regions with binary, continuous or survival phenotypes.
 
 The latest version can be installed by
 
-```
-devtools::install_github("TransBioInfoLab/rnaEditr")
+```{r}
+if(!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("rnaEditr")
 ```
 After installation, the rnaEditr package can be loaded into R using:
 

@@ -44,32 +44,31 @@
 CountSamplesPerGroup <- function(pheno_df,
                                  responses_char,
                                  covariates_char){
-  # browser()
   
-  # Limit df to variables in responses_char  or covariates with char or factor
-  #   class.
-  cov_df <- pheno_df[
-    , colnames(pheno_df) %in% covariates_char, drop = FALSE
-  ]
-  
-  select_char <- vapply(cov_df, class, character(1))
-  select_names <- names(
-    select_char[select_char %in% c("character", "factor", "logical")]
-  )
-  
-  # Limit final table to rows without missingness: because if there's
-  #   missingness then model would ignore incomplete data.
-  table_df <- pheno_df[, c(responses_char, select_names), drop = FALSE]
-  table_df <- table_df[complete.cases(table_df), , drop = FALSE]
-  
-  # allCombos_char <- apply(
-  #   X = table_df,
-  #   MARGIN = 1,
-  #   FUN = function(row) { paste(row, collapse = "_") }
-  # )
-  
-  # Find the minimum sample size in each group.
-  # min(table(allCombos_char))
-  min(table(table_df))
+    # Limit df to variables in responses_char  or covariates with char or 
+    #   factor class.
+    cov_df <- pheno_df[
+      , colnames(pheno_df) %in% covariates_char, drop = FALSE
+    ]
+    
+    select_char <- vapply(cov_df, class, character(1))
+    select_names <- names(
+      select_char[select_char %in% c("character", "factor", "logical")]
+    )
+    
+    # Limit final table to rows without missingness: because if there's
+    #   missingness then model would ignore incomplete data.
+    table_df <- pheno_df[, c(responses_char, select_names), drop = FALSE]
+    table_df <- table_df[complete.cases(table_df), , drop = FALSE]
+    
+    # allCombos_char <- apply(
+    #   X = table_df,
+    #   MARGIN = 1,
+    #   FUN = function(row) { paste(row, collapse = "_") }
+    # )
+    
+    # Find the minimum sample size in each group.
+    # min(table(allCombos_char))
+    min(table(table_df))
   
 }

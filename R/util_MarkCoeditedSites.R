@@ -67,30 +67,30 @@ MarkCoeditedSites <- function (rnaEditCluster_mat,
                                minEditFreq = 0.05,
                                verbose = TRUE) {
   
-  method <- match.arg(method)
+    method <- match.arg(method)
+    
+    # Calculate r_drop
+    clusterRdrop_df <- CreateRdrop(
+      data = rnaEditCluster_mat,
+      method = method,
+      minEditFreq = minEditFreq
+    )
+    
+    sites_char <- clusterRdrop_df$site
+    
+    # Drop sites with missing r_drop or r_drop < rDropThresh_num
+    dropSites_char <- sites_char[
+      is.na(clusterRdrop_df$r_drop) |
+        clusterRdrop_df$r_drop < rDropThresh_num
+    ]
   
-  # Calculate r_drop
-  clusterRdrop_df <- CreateRdrop(
-    data = rnaEditCluster_mat,
-    method = method,
-    minEditFreq = minEditFreq
-  )
-  
-  sites_char <- clusterRdrop_df$site
-  
-  # Drop sites with missing r_drop or r_drop < rDropThresh_num
-  dropSites_char <- sites_char[
-    is.na(clusterRdrop_df$r_drop) |
-      clusterRdrop_df$r_drop < rDropThresh_num
-  ]
-
-  # Create Output Data Frame
-  data.frame(
-    site = sites_char,
-    keep = ifelse(sites_char %in% dropSites_char, 0, 1), #(drop=0, keep=1)
-    ind = seq_len(ncol(rnaEditCluster_mat)),
-    r_drop = clusterRdrop_df$r_drop,
-    stringsAsFactors = FALSE
-  )
+    # Create Output Data Frame
+    data.frame(
+      site = sites_char,
+      keep = ifelse(sites_char %in% dropSites_char, 0, 1), #(drop=0, keep=1)
+      ind = seq_len(ncol(rnaEditCluster_mat)),
+      r_drop = clusterRdrop_df$r_drop,
+      stringsAsFactors = FALSE
+    )
   
 }

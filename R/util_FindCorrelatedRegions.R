@@ -45,67 +45,69 @@ FindCorrelatedRegions <- function(sites_df,
                                   featureType = c("site", "cpg"),
                                   minSites_int = 3){
 
-  featureType <- match.arg(featureType)
-  
-  # Get contiguous regions of sites
-  contiguousRegion_ls <- getSegments(sites_df$keep, cutoff = 1)
-  nSegs_int <- length(contiguousRegion_ls$upIndex)
-
-  if (nSegs_int > 0){
-
-    # Select segments with number of sites >= minSites
-    contiguous_int <- lengths(contiguousRegion_ls$upIndex)
-    contiguousMinSites_idx <- which(contiguous_int >= minSites_int)
-    nSegsMinSites_int <- length(contiguousMinSites_idx)
-
-    # Create output dataframe with sites and contiguous coedited subregion
-    #   number
-    ind<-NULL
+    featureType <- match.arg(featureType)
     
-    if (nSegsMinSites_int > 0){
+    # Get contiguous regions of sites
+    contiguousRegion_ls <- getSegments(sites_df$keep, cutoff = 1)
+    nSegs_int <- length(contiguousRegion_ls$upIndex)
+  
+    if (nSegs_int > 0){
+  
+      # Select segments with number of sites >= minSites
+      contiguous_int <- lengths(contiguousRegion_ls$upIndex)
+      contiguousMinSites_idx <- which(contiguous_int >= minSites_int)
+      nSegsMinSites_int <- length(contiguousMinSites_idx)
+  
+      # Create output dataframe with sites and contiguous coedited subregion
+      #   number
+      ind<-NULL
       
-      inner_ls <- lapply(
-        seq_len(nSegsMinSites_int),
-        function(u){
-          
-          data.frame(
-            site = subset(
-              sites_df,
-              ind %in% contiguousRegion_ls$upIndex[[contiguousMinSites_idx[u]]],
-              select = featureType
-            ),
-            subregion = rep(
-              u, length(
-                contiguousRegion_ls$upIndex[[contiguousMinSites_idx[u]]]
+      if (nSegsMinSites_int > 0){
+        
+        inner_ls <- lapply(
+          seq_len(nSegsMinSites_int),
+          function(u){
+            
+            data.frame(
+              site = subset(
+                sites_df,
+                ind %in% contiguousRegion_ls$upIndex[[
+                  contiguousMinSites_idx[u]
+                ]],
+                select = featureType
+              ),
+              subregion = rep(
+                u, length(
+                  contiguousRegion_ls$upIndex[[contiguousMinSites_idx[u]]]
+                )
               )
             )
-          )
-        }
-      )
-      
-      contiguousRegionsSites <- do.call(rbind, inner_ls)
-      
-      
+          }
+        )
+        
+        contiguousRegionsSites <- do.call(rbind, inner_ls)
+        
+        
+      } else {
+        
+        contiguousRegionsSites <- cbind(
+          as.data.frame(sites_df[, featureType], stringsAsFactors = FALSE),
+          rep(0,length(sites_df[, featureType]))
+        )
+        
+      }
+  
     } else {
       
-      contiguousRegionsSites <- cbind(
-        as.data.frame(sites_df[, featureType], stringsAsFactors = FALSE),
-        rep(0,length(sites_df[, featureType]))
-      )
-      
+        contiguousRegionsSites <- cbind(
+          as.data.frame(sites_df[, featureType], stringsAsFactors = FALSE),
+          rep(0,length(sites_df[, featureType]))
+        )
+        
     }
-
-  } else {
-    
-      contiguousRegionsSites <- cbind(
-        as.data.frame(sites_df[, featureType], stringsAsFactors = FALSE),
-        rep(0,length(sites_df[, featureType]))
-      )
-      
-  }
-
-  colnames(contiguousRegionsSites) <- c(featureType,"subregion")
   
-  contiguousRegionsSites
+    colnames(contiguousRegionsSites) <- c(featureType,"subregion")
+    
+    contiguousRegionsSites
   
 }

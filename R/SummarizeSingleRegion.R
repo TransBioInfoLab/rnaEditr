@@ -40,13 +40,13 @@ SummarizeSingleRegion <- function(region_df,
                                   rnaEditMatrix,
                                   selectMethod = MedianSites, ...){
   
-  rnaEdit_df <- GetSitesLocations(
-    region_df = region_df,
-    rnaEditMatrix = rnaEditMatrix,
-    output = "locationsAndValues"
-  )
-
-  selectMethod(rnaEditMatrix = rnaEdit_df, ...)
+    rnaEdit_df <- GetSitesLocations(
+      region_df = region_df,
+      rnaEditMatrix = rnaEditMatrix,
+      output = "locationsAndValues"
+    )
+  
+    selectMethod(rnaEditMatrix = rnaEdit_df, ...)
 
 }
 

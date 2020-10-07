@@ -92,97 +92,96 @@ SingleCoeditedRegion <- function(region_df,
                                  minEditFreq = 0.05,
                                  returnAllSites = FALSE,
                                  verbose = TRUE){
-  # browser()
-
-  output <- match.arg(output)
-  method <- match.arg(method)
   
-  
-  # Get the rnaEditing Values for the Region
-  rnaEditCluster_df <- GetSitesLocations(
-    region_df = region_df,
-    rnaEditMatrix = rnaEditMatrix,
-    output = "locationsAndValues"
-  )
-  
-  if (anyNA(rnaEditCluster_df)) {
-    stop("Complete data is required for rnaEditMatrix.")
-  }
-  
-  if (is.null(rnaEditCluster_df)) {
-    return(NULL)
-  } else if (nrow(rnaEditCluster_df) < minSites) {
-    return(NULL)
-  }
-  
-  
-  # Transpose RNA editing level matrix
-  rnaEditClusterT_mat <- t(rnaEditCluster_df)
-  
-  # Mark co-edited sites
-  keepSites_df <- MarkCoeditedSites(
-    rnaEditCluster_mat = rnaEditClusterT_mat,
-    rDropThresh_num = rDropThresh_num,
-    method = method,
-    minEditFreq = minEditFreq,
-    verbose = verbose
-  )
-  
-  # Find contiguous and co-edited subregions
-  keepContiguousSites_df <- FindCorrelatedRegions(
-    sites_df = keepSites_df,
-    featureType = "site",
-    minSites_int = 3
-  )
-  
-  # Split sites by subregion
-  keepContiguousSites_ls <- split(
-    x = keepContiguousSites_df$site,
-    f = keepContiguousSites_df$subregion
-  )
-  
-  # if no co-edited region is found, then not going over the next step with
-  #   function GetMinPairwiseCor()
-  if (max(keepContiguousSites_df$subregion) == 0) {
-    minPairCorr <- -1
-  }
-  
-  # Calculate min pairwise correlation and subset for each subregion and add
-  #   information to df
-  pairwiseResults <- GetMinPairwiseCor(
-    rnaEditCluster_mat = rnaEditClusterT_mat,
-    minPairCorr = minPairCorr,
-    probes_ls = keepContiguousSites_ls,
-    method = method
-  )
-  
-  # Create output 
-  if (output == "GRanges") {
+    output <- match.arg(output)
+    method <- match.arg(method)
     
-    # Create output GRanges
-    out <- SitesToRegion(
-      sitesSubregion_df = keepContiguousSites_df,
-      sitesAreOrdered = TRUE,
-      keepminPairwiseCor_df = pairwiseResults$keepminPairwiseCor_df,
-      returnAllSites = returnAllSites,
+    
+    # Get the rnaEditing Values for the Region
+    rnaEditCluster_df <- GetSitesLocations(
+      region_df = region_df,
+      rnaEditMatrix = rnaEditMatrix,
+      output = "locationsAndValues"
+    )
+    
+    if (anyNA(rnaEditCluster_df)) {
+      stop("Complete data is required for rnaEditMatrix.")
+    }
+    
+    if (is.null(rnaEditCluster_df)) {
+      return(NULL)
+    } else if (nrow(rnaEditCluster_df) < minSites) {
+      return(NULL)
+    }
+    
+    
+    # Transpose RNA editing level matrix
+    rnaEditClusterT_mat <- t(rnaEditCluster_df)
+    
+    # Mark co-edited sites
+    keepSites_df <- MarkCoeditedSites(
+      rnaEditCluster_mat = rnaEditClusterT_mat,
+      rDropThresh_num = rDropThresh_num,
+      method = method,
+      minEditFreq = minEditFreq,
       verbose = verbose
     )
     
-  } else {
-    
-    # Create output data frame
-    out <- CreateOutputDF(
-      keepSites_df = keepSites_df,
-      keepContiguousSites_df = keepContiguousSites_df,
-      keepminPairwiseCor_df = pairwiseResults$keepminPairwiseCor_df,
-      returnAllSites = returnAllSites,
-      verbose = verbose
+    # Find contiguous and co-edited subregions
+    keepContiguousSites_df <- FindCorrelatedRegions(
+      sites_df = keepSites_df,
+      featureType = "site",
+      minSites_int = 3
     )
     
-  }
-  
-  # Return
-  out
+    # Split sites by subregion
+    keepContiguousSites_ls <- split(
+      x = keepContiguousSites_df$site,
+      f = keepContiguousSites_df$subregion
+    )
+    
+    # if no co-edited region is found, then not going over the next step with
+    #   function GetMinPairwiseCor()
+    if (max(keepContiguousSites_df$subregion) == 0) {
+      minPairCorr <- -1
+    }
+    
+    # Calculate min pairwise correlation and subset for each subregion and add
+    #   information to df
+    pairwiseResults <- GetMinPairwiseCor(
+      rnaEditCluster_mat = rnaEditClusterT_mat,
+      minPairCorr = minPairCorr,
+      probes_ls = keepContiguousSites_ls,
+      method = method
+    )
+    
+    # Create output 
+    if (output == "GRanges") {
+      
+      # Create output GRanges
+      out <- SitesToRegion(
+        sitesSubregion_df = keepContiguousSites_df,
+        sitesAreOrdered = TRUE,
+        keepminPairwiseCor_df = pairwiseResults$keepminPairwiseCor_df,
+        returnAllSites = returnAllSites,
+        verbose = verbose
+      )
+      
+    } else {
+      
+      # Create output data frame
+      out <- CreateOutputDF(
+        keepSites_df = keepSites_df,
+        keepContiguousSites_df = keepContiguousSites_df,
+        keepminPairwiseCor_df = pairwiseResults$keepminPairwiseCor_df,
+        returnAllSites = returnAllSites,
+        verbose = verbose
+      )
+      
+    }
+    
+    # Return
+    out
   
 }
 

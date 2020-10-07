@@ -58,56 +58,58 @@ AllCloseByRegions <- function(regions_gr,
                               maxGap = 50,
                               minSites = 3,
                               progressBar = "time"){
-
-  # parallel <- register_cores(cores)
   
-  sites_mat <- do.call(rbind, strsplit(row.names(rnaEditMatrix), split = ":"))
-  sites_df <- data.frame(
-    site = row.names(rnaEditMatrix),
-    chr = sites_mat[, 1],
-    pos = as.integer(sites_mat[, 2]),
-    stringsAsFactors = FALSE
-  )
-  
-  sites_gr <- makeGRangesFromDataFrame(
-    df = sites_df,
-    start.field = "pos",
-    end.field = "pos"
-  ) 
-  
-  hits <- data.frame(
-    findOverlaps(
-      query = regions_gr,
-      subject = sites_gr
+    # parallel <- register_cores(cores)
+    
+    sites_mat <- do.call(
+      rbind, strsplit(row.names(rnaEditMatrix), split = ":")
     )
-  )
-  
-  closeByRegions_ls <- alply(
-    .data = unique(hits$queryHits),
-    .margins = 1,
-    .fun = function(idx){
-      SingleCloseByRegion(
-        region_df = data.frame(regions_gr[idx]),
-        rnaEditMatrix = rnaEditMatrix[unique(hits$subjectHits),],
-        maxGap = maxGap,
-        minSites = minSites
+    sites_df <- data.frame(
+      site = row.names(rnaEditMatrix),
+      chr = sites_mat[, 1],
+      pos = as.integer(sites_mat[, 2]),
+      stringsAsFactors = FALSE
+    )
+    
+    sites_gr <- makeGRangesFromDataFrame(
+      df = sites_df,
+      start.field = "pos",
+      end.field = "pos"
+    ) 
+    
+    hits <- data.frame(
+      findOverlaps(
+        query = regions_gr,
+        subject = sites_gr
       )
-    },
-    # .parallel = parallel,
-    .progress = progressBar
-  )
-  
-  # Delete null elements and duplicated elements in the list
-  closeByRegions_ls <- unique(
-    closeByRegions_ls[lengths(closeByRegions_ls) > 0]
-  )
-  
-  # Turn the list of GRanges to a single GRanges.
-  # We suppress warnings because the .Seqinfo.mergexy() function expects that
-  #   there will be an overlap between the combined ranges. This will never
-  #   be the case for us. The "c" method called here eventually dispatches to
-  #   this merge function internally. See below for more information:
-  # https://rdrr.io/bioc/GenomeInfoDb/src/R/Seqinfo-class.R
-  suppressWarnings(Reduce("c", closeByRegions_ls))
+    )
+    
+    closeByRegions_ls <- alply(
+      .data = unique(hits$queryHits),
+      .margins = 1,
+      .fun = function(idx){
+        SingleCloseByRegion(
+          region_df = data.frame(regions_gr[idx]),
+          rnaEditMatrix = rnaEditMatrix[unique(hits$subjectHits),],
+          maxGap = maxGap,
+          minSites = minSites
+        )
+      },
+      # .parallel = parallel,
+      .progress = progressBar
+    )
+    
+    # Delete null elements and duplicated elements in the list
+    closeByRegions_ls <- unique(
+      closeByRegions_ls[lengths(closeByRegions_ls) > 0]
+    )
+    
+    # Turn the list of GRanges to a single GRanges.
+    # We suppress warnings because the .Seqinfo.mergexy() function expects that
+    #   there will be an overlap between the combined ranges. This will never
+    #   be the case for us. The "c" method called here eventually dispatches to
+    #   this merge function internally. See below for more information:
+    # https://rdrr.io/bioc/GenomeInfoDb/src/R/Seqinfo-class.R
+    suppressWarnings(Reduce("c", closeByRegions_ls))
   
 }

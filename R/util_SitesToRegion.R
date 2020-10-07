@@ -72,71 +72,71 @@ SitesToRegion <- function(sitesSubregion_df,
                           returnAllSites = FALSE, 
                           verbose = TRUE){
   
-  if (!returnAllSites & (sum(sitesSubregion_df$subregion) == 0)) {
-    
-    if (verbose) {
-      message(
-        "No co-edited subregions found. Returning empty GRanges object."
-      )
+    if (!returnAllSites & (sum(sitesSubregion_df$subregion) == 0)) {
+      
+      if (verbose) {
+        message(
+          "No co-edited subregions found. Returning empty GRanges object."
+        )
+      }
+      return(GRanges())
+      
     }
-    return(GRanges())
     
-  }
-  
-  # Separate site into chromosome and position. Eg.
-  #   "chr22:41327462" --> c("chr22", "41327462")
-  orderedSites_df <- OrderSitesByLocation(
-    sites_char = sitesSubregion_df$site,
-    output = "dataframe"
-  )
-  
-  # If input sites are ordered then just combine variable subregion to original
-  #   data, if not ordered then we have to merge two datasets instead of easily
-  #   combine.
-  if (!sitesAreOrdered) {
+    # Separate site into chromosome and position. Eg.
+    #   "chr22:41327462" --> c("chr22", "41327462")
+    orderedSites_df <- OrderSitesByLocation(
+      sites_char = sitesSubregion_df$site,
+      output = "dataframe"
+    )
+    
+    # If input sites are ordered then just combine variable subregion to 
+    #   original data, if not ordered then we have to merge two datasets 
+    #   instead of easily combine.
+    if (!sitesAreOrdered) {
+      
+      orderedSites_df <- merge(
+        orderedSites_df, sitesSubregion_df,
+        by = "site"
+      )
+      
+    } else {
+      orderedSites_df$subregion <- sitesSubregion_df$subregion
+    }
     
     orderedSites_df <- merge(
-      orderedSites_df, sitesSubregion_df,
-      by = "site"
+      orderedSites_df, keepminPairwiseCor_df,
+      by = "subregion",
+      all.x = TRUE
     )
     
-  } else {
-    orderedSites_df$subregion <- sitesSubregion_df$subregion
-  }
-  
-  orderedSites_df <- merge(
-    orderedSites_df, keepminPairwiseCor_df,
-    by = "subregion",
-    all.x = TRUE
-  )
-  
-  orderedSites_df <- orderedSites_df[
-    !is.na(orderedSites_df$keepminPairwiseCor) &
-      orderedSites_df$keepminPairwiseCor == 1,
-  ]
-  
-  if (nrow(orderedSites_df) == 0) {
+    orderedSites_df <- orderedSites_df[
+      !is.na(orderedSites_df$keepminPairwiseCor) &
+        orderedSites_df$keepminPairwiseCor == 1,
+    ]
     
-    if (verbose) {
-      message(
-        "No co-edited subregions found. Returning empty GRanges object."
+    if (nrow(orderedSites_df) == 0) {
+      
+      if (verbose) {
+        message(
+          "No co-edited subregions found. Returning empty GRanges object."
+        )
+      }
+      return(GRanges())
+      
+    } 
+    
+    # Find start and end position for each subregion ###
+    start_df <- aggregate(pos ~ chr + subregion, data = orderedSites_df, min)
+    end_df <- aggregate(pos ~ chr + subregion, data = orderedSites_df, max)
+    
+    # Create GRanges
+    GRanges(
+      seqnames = start_df$chr,
+      ranges = IRanges(
+        start = start_df$pos,
+        end = end_df$pos
       )
-    }
-    return(GRanges())
-    
-  } 
-  
-  # Find start and end position for each subregion ###
-  start_df <- aggregate(pos ~ chr + subregion, data = orderedSites_df, min)
-  end_df <- aggregate(pos ~ chr + subregion, data = orderedSites_df, max)
-  
-  # Create GRanges
-  GRanges(
-    seqnames = start_df$chr,
-    ranges = IRanges(
-      start = start_df$pos,
-      end = end_df$pos
     )
-  )
   
 }

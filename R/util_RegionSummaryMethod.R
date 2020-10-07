@@ -29,13 +29,13 @@ NULL
 #' @keywords internal
 MaxSites <- function(rnaEditMatrix, ...){
   
-  apply(
-    X = rnaEditMatrix,
-    MARGIN = 2,
-    FUN = function(x){
-      max(x, na.rm = TRUE, ...)
-    }
-  )
+    apply(
+      X = rnaEditMatrix,
+      MARGIN = 2,
+      FUN = function(x){
+        max(x, na.rm = TRUE, ...)
+      }
+    )
   
 }
 
@@ -45,11 +45,11 @@ MaxSites <- function(rnaEditMatrix, ...){
 #' @keywords internal
 MeanSites <- function(rnaEditMatrix, ...){
   
-  colMeans(
-    x = rnaEditMatrix,
-    na.rm = TRUE,
-    ...
-  )
+    colMeans(
+      x = rnaEditMatrix,
+      na.rm = TRUE,
+      ...
+    )
   
 }
 
@@ -59,13 +59,13 @@ MeanSites <- function(rnaEditMatrix, ...){
 #' @keywords internal
 MedianSites <- function(rnaEditMatrix, ...){
   
-  apply(
-    X = rnaEditMatrix,
-    MARGIN = 2,
-    FUN = function(x){
-      median(x, na.rm = TRUE, ...)
-    }
-  )
+    apply(
+      X = rnaEditMatrix,
+      MARGIN = 2,
+      FUN = function(x){
+        median(x, na.rm = TRUE, ...)
+      }
+    )
   
 }
 
@@ -75,8 +75,8 @@ MedianSites <- function(rnaEditMatrix, ...){
 #' @keywords internal
 PC1Sites <- function(rnaEditMatrix, ...){
   
-  site_prcomp <- prcomp(t(rnaEditMatrix), scale. = TRUE, ...)
-  site_prcomp$x[, 1, drop = TRUE]
+    site_prcomp <- prcomp(t(rnaEditMatrix), scale. = TRUE, ...)
+    site_prcomp$x[, 1, drop = TRUE]
   
 }
 

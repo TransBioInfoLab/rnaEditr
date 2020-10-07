@@ -40,27 +40,27 @@
 #'    
 PlotEditingCorrelations <- function(region_gr, rnaEditMatrix, ...){
   
-  region_df <- as.data.frame(
-    region_gr,
-    stringsAsFactors = FALSE
-  )
-  
-  region_df$seqnames <- as.character(region_df$seqnames)
-  
-  rnaedit_df <- GetSitesLocations(
-    region_df = region_df,
-    rnaEditMatrix = rnaEditMatrix,
-    output = "locationsAndValues"
-  )
-  
-  rnaedit_t_mat <- t(rnaedit_df)
-  
-  corr <- cor(
-    rnaedit_t_mat,
-    method = "spearman",
-    use = "pairwise.complete.obs"
-  )
-  
-  corrplot(corr, method="number", number.cex = 1, tl.cex = 0.7, ...)
+    region_df <- as.data.frame(
+      region_gr,
+      stringsAsFactors = FALSE
+    )
+    
+    region_df$seqnames <- as.character(region_df$seqnames)
+    
+    rnaedit_df <- GetSitesLocations(
+      region_df = region_df,
+      rnaEditMatrix = rnaEditMatrix,
+      output = "locationsAndValues"
+    )
+    
+    rnaedit_t_mat <- t(rnaedit_df)
+    
+    corr <- cor(
+      rnaedit_t_mat,
+      method = "spearman",
+      use = "pairwise.complete.obs"
+    )
+    
+    corrplot(corr, method="number", number.cex = 1, tl.cex = 0.7, ...)
   
 }

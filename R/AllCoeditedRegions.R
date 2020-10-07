@@ -90,83 +90,85 @@ AllCoeditedRegions <- function(regions_gr,
                                progressBar = "time",
                                verbose = TRUE){
   
-  output <- match.arg(output)
-  method <- match.arg(method)
-  
-  # parallel <- register_cores(cores)
-  
-  sites_mat <- do.call(rbind, strsplit(row.names(rnaEditMatrix), split = ":"))
-  sites_df <- data.frame(
-    site = row.names(rnaEditMatrix),
-    chr = sites_mat[, 1],
-    pos = as.integer(sites_mat[, 2]),
-    stringsAsFactors = FALSE
-  )
-  
-  sites_gr <- makeGRangesFromDataFrame(
-    df = sites_df,
-    start.field = "pos",
-    end.field = "pos"
-  ) 
-  
-  hits <- data.frame(
-    findOverlaps(
-      query = regions_gr,
-      subject = sites_gr
+    output <- match.arg(output)
+    method <- match.arg(method)
+    
+    # parallel <- register_cores(cores)
+    
+    sites_mat <- do.call(
+      rbind, strsplit(row.names(rnaEditMatrix), split = ":")
     )
-  )
-  
-  result_ls <- alply(
-    .data = unique(hits$queryHits),
-    .margins = 1,
-    .fun = function(idx){
-      SingleCoeditedRegion(
-        region_df = data.frame(regions_gr[idx]),
-        rnaEditMatrix = rnaEditMatrix[unique(hits$subjectHits),],
-        output = output,
-        rDropThresh_num = rDropThresh_num,
-        minPairCorr = minPairCorr,
-        minSites = minSites,
-        method = method,
-        returnAllSites = returnAllSites,
-        verbose = FALSE
+    sites_df <- data.frame(
+      site = row.names(rnaEditMatrix),
+      chr = sites_mat[, 1],
+      pos = as.integer(sites_mat[, 2]),
+      stringsAsFactors = FALSE
+    )
+    
+    sites_gr <- makeGRangesFromDataFrame(
+      df = sites_df,
+      start.field = "pos",
+      end.field = "pos"
+    ) 
+    
+    hits <- data.frame(
+      findOverlaps(
+        query = regions_gr,
+        subject = sites_gr
       )
-    },
-    # .parallel = parallel,
-    .progress = progressBar
-  )
-  
-  if (output == "GRanges") {
-    
-    # Delete null or duplicated elements in the list
-    result_ls <- unique(
-      result_ls[lengths(result_ls) > 0]
     )
     
-    # Turn the list of GRanges to a single GRanges
-    # We suppress warnings because the .Seqinfo.mergexy() function expects that
-    #   there will be an overlap between the combined ranges. This will never
-    #   be the case for us. The "c" method called here eventually dispatches to
-    #   this merge function internally. See below for more information:
-    # https://rdrr.io/bioc/GenomeInfoDb/src/R/Seqinfo-class.R
-    out <- suppressWarnings(Reduce("c", result_ls))
+    result_ls <- alply(
+      .data = unique(hits$queryHits),
+      .margins = 1,
+      .fun = function(idx){
+        SingleCoeditedRegion(
+          region_df = data.frame(regions_gr[idx]),
+          rnaEditMatrix = rnaEditMatrix[unique(hits$subjectHits),],
+          output = output,
+          rDropThresh_num = rDropThresh_num,
+          minPairCorr = minPairCorr,
+          minSites = minSites,
+          method = method,
+          returnAllSites = returnAllSites,
+          verbose = FALSE
+        )
+      },
+      # .parallel = parallel,
+      .progress = progressBar
+    )
     
-  } else {
+    if (output == "GRanges") {
+      
+      # Delete null or duplicated elements in the list
+      result_ls <- unique(
+        result_ls[lengths(result_ls) > 0]
+      )
+      
+      # Turn the list of GRanges to a single GRanges
+      # We suppress warnings because the .Seqinfo.mergexy() function expects
+      #   that there will be an overlap between the combined ranges. This will 
+      #   never be the case for us. The "c" method called here eventually 
+      #   dispatches to this merge function internally. See below for more 
+      #   information:https://rdrr.io/bioc/GenomeInfoDb/src/R/Seqinfo-class.R
+      out <- suppressWarnings(Reduce("c", result_ls))
+      
+    } else {
+      
+      # We're using do.call() instead of Reduce() here since we are combining
+      #   list of data frames which will be faster to use do.call().
+      final_df <- do.call(rbind, result_ls)
+      
+      # Delete duplicated rows
+      # final_df <- unique(final_df)
+      
+      row.names(final_df) <- NULL
+      
+      out <- final_df
+      
+    }
     
-    # We're using do.call() instead of Reduce() here since we are combining
-    #   list of data frames which will be faster to use do.call().
-    final_df <- do.call(rbind, result_ls)
-    
-    # Delete duplicated rows
-    # final_df <- unique(final_df)
-    
-    row.names(final_df) <- NULL
-    
-    out <- final_df
-    
-  }
-  
-  out
+    out
   
 }
 

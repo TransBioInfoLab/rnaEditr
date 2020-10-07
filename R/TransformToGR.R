@@ -52,102 +52,105 @@ TransformToGR <- function(genes_char,
                           type = c("symbol", "region"),
                           genome = c("hg38", "hg19")){
   
-  genome <- match.arg(genome)
-  type <- match.arg(type)
-
-  if (type == "symbol") {
-    
-    if (genome == "hg38") {
-      genes_gr <- readRDS(
-        system.file(
-          "extdata",
-          "hg38_annoGene_gr.RDS",
-          package = 'rnaEditr',
-          mustWork = TRUE
+    genome <- match.arg(genome)
+    type <- match.arg(type)
+  
+    if (type == "symbol") {
+      
+      if (genome == "hg38") {
+        genes_gr <- readRDS(
+          system.file(
+            "extdata",
+            "hg38_annoGene_gr.RDS",
+            package = 'rnaEditr',
+            mustWork = TRUE
+          )
         )
-      )
-    } else {
-      genes_gr <- readRDS(
-        system.file(
-          "extdata",
-          "hg19_annoGene_gr.RDS",
-          package = 'rnaEditr',
-          mustWork = TRUE
+      } else {
+        genes_gr <- readRDS(
+          system.file(
+            "extdata",
+            "hg19_annoGene_gr.RDS",
+            package = 'rnaEditr',
+            mustWork = TRUE
+          )
         )
-      )
-    }
-    
-    genes_df <- data.frame(genes_gr)
-    genes_df$seqnames <- as.character(genes_df$seqnames)
-    
-    gene_sub_df <- genes_df[genes_df$symbol %in% genes_char, ]
-    
-    if (nrow(gene_sub_df) == 0){
+      }
       
-      stop("No gene found.")
+      genes_df <- data.frame(genes_gr)
+      genes_df$seqnames <- as.character(genes_df$seqnames)
       
-    } else {
+      gene_sub_df <- genes_df[genes_df$symbol %in% genes_char, ]
       
-      geneNoMiss <- genes_char[genes_char %in% gene_sub_df$symbol]
-      geneMiss <- genes_char[!(genes_char %in% gene_sub_df$symbol)]
-      
-      if (length(geneMiss) > 0) {
+      if (nrow(gene_sub_df) == 0){
         
-        message(
-          sprintf("%i gene(s) not found. These gene(s) are:", length(geneMiss))
+        stop("No gene found.")
+        
+      } else {
+        
+        geneNoMiss <- genes_char[genes_char %in% gene_sub_df$symbol]
+        geneMiss <- genes_char[!(genes_char %in% gene_sub_df$symbol)]
+        
+        if (length(geneMiss) > 0) {
+          
+          message(
+            sprintf(
+              "%i gene(s) not found. These gene(s) are:",
+              length(geneMiss)
+            )
+          )
+          print(geneMiss)
+          
+        }
+        
+        gene_sub_df$symbol <- factor(
+          x = gene_sub_df$symbol,
+          levels = geneNoMiss,
+          ordered = TRUE
         )
-        print(geneMiss)
+        gene_sub_df <- gene_sub_df[
+          order(gene_sub_df$symbol), 
+        ]
+        gene_sub_df$symbol <- as.character(
+          gene_sub_df$symbol
+        )
         
       }
       
-      gene_sub_df$symbol <- factor(
-        x = gene_sub_df$symbol,
-        levels = geneNoMiss,
-        ordered = TRUE
+      # Then turn the data frame of ranges (seqnames,start,end) into GRanges
+      dat_gr <- GRanges(
+        seqnames = gene_sub_df$seqnames,
+        ranges = IRanges(
+          gene_sub_df$start,
+          gene_sub_df$end
+        ),
+        symbols = gene_sub_df$symbol
       )
-      gene_sub_df <- gene_sub_df[
-        order(gene_sub_df$symbol), 
-      ]
-      gene_sub_df$symbol <- as.character(
-        gene_sub_df$symbol
+      
+    } else {
+      
+      # Split genes_char into seqname, start and end. For example,
+      #   "chr22:18555686-18573797" --> "chr22", "18555686", "18573797"
+      site_mat <- do.call(rbind, strsplit(genes_char, split = c("\\:|\\-")))
+      
+      gene_sub_df <- data.frame(
+        seqnames = site_mat[, 1],
+        start = as.integer(site_mat[, 2]),
+        end = as.integer(site_mat[, 3]),
+        stringsAsFactors = FALSE
+      )
+      
+      # Then turn the data frame of ranges (seqnames,start,end) into GRanges
+      dat_gr <- GRanges(
+        seqnames = gene_sub_df$seqnames,
+        ranges = IRanges(
+          gene_sub_df$start,
+          gene_sub_df$end
+        )
       )
       
     }
     
-    # Then turn the data frame of ranges (seqnames,start,end) into GRanges
-    dat_gr <- GRanges(
-      seqnames = gene_sub_df$seqnames,
-      ranges = IRanges(
-        gene_sub_df$start,
-        gene_sub_df$end
-      ),
-      symbols = gene_sub_df$symbol
-    )
-    
-  } else {
-    
-    # Split genes_char into seqname, start and end. For example,
-    #   "chr22:18555686-18573797" --> "chr22", "18555686", "18573797"
-    site_mat <- do.call(rbind, strsplit(genes_char, split = c("\\:|\\-")))
-    
-    gene_sub_df <- data.frame(
-      seqnames = site_mat[, 1],
-      start = as.integer(site_mat[, 2]),
-      end = as.integer(site_mat[, 3]),
-      stringsAsFactors = FALSE
-    )
-    
-    # Then turn the data frame of ranges (seqnames,start,end) into GRanges
-    dat_gr <- GRanges(
-      seqnames = gene_sub_df$seqnames,
-      ranges = IRanges(
-        gene_sub_df$start,
-        gene_sub_df$end
-      )
-    )
-    
-  }
-  
-  dat_gr
+    dat_gr
   
 }

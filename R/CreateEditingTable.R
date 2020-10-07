@@ -26,29 +26,29 @@
 #'   
 CreateEditingTable <- function(rnaEditMatrix){
   
-  sites_mat <- do.call(
-    rbind,
-    strsplit(
-      row.names(rnaEditMatrix),
-      split = ":"
+    sites_mat <- do.call(
+      rbind,
+      strsplit(
+        row.names(rnaEditMatrix),
+        split = ":"
+      )
     )
-  )
-  
-  # We call the chromosome column "seqnames" to match the default GRanges
-  #   output.
-  metaCols_df <- data.frame(
-    seqnames = sites_mat[, 1],
-    start    = as.integer(sites_mat[, 2]),
-    end      = as.integer(sites_mat[, 2]),
-    width    = 1L,
-    stringsAsFactors = FALSE
-  )
-  
-  dat_df <- cbind(metaCols_df, rnaEditMatrix)
-  row.names(dat_df) <- NULL
-  
-  class(dat_df) <- c("rnaEdit_df", "data.frame")
-  
-  dat_df
+    
+    # We call the chromosome column "seqnames" to match the default GRanges
+    #   output.
+    metaCols_df <- data.frame(
+      seqnames = sites_mat[, 1],
+      start    = as.integer(sites_mat[, 2]),
+      end      = as.integer(sites_mat[, 2]),
+      width    = 1L,
+      stringsAsFactors = FALSE
+    )
+    
+    dat_df <- cbind(metaCols_df, rnaEditMatrix)
+    row.names(dat_df) <- NULL
+    
+    class(dat_df) <- c("rnaEdit_df", "data.frame")
+    
+    dat_df
   
 }

@@ -91,106 +91,91 @@ AnnotateResults <- function(results_df,
                             inputRegions_gr = NULL,
                             genome = c("hg38", "hg19"),
                             analysis = c("region-based", "site-specific")){
-  # browser()
-  
-  genome <- match.arg(genome)
-  analysis <- match.arg(analysis)
-  
-  results_gr <- makeGRangesFromDataFrame(
-    df = results_df,
-    keep.extra.columns = TRUE
-  )
-  
-  analysisSite_logi <- analysis == "site-specific"
-  nullInput_logi <- is.null(inputRegions_gr)
-  nullClose_logi <- is.null(closeByRegions_gr)
-  
-  
-  ###  Add Annotations  ###
-  # Add inputRegion annotation if available
-  if (analysisSite_logi | nullInput_logi) {
-    addInput_gr <- results_gr
-  } else {
+
+    genome <- match.arg(genome)
+    analysis <- match.arg(analysis)
     
-    addInput_gr <- AddMetaData(
-      target_gr = results_gr,
-      annot_gr = inputRegions_gr,
-      annotType_char = "region",
-      genome = genome,
-      annotLabel_char = "inputRegion"
+    results_gr <- makeGRangesFromDataFrame(
+      df = results_df,
+      keep.extra.columns = TRUE
     )
     
-  }
-  
-  # Add closeByRegion annotation if available
-  if (analysisSite_logi | nullClose_logi) {
-    addMetaData_gr <- addInput_gr
-  } else {
+    analysisSite_logi <- analysis == "site-specific"
+    nullInput_logi <- is.null(inputRegions_gr)
+    nullClose_logi <- is.null(closeByRegions_gr)
     
-    addMetaData_gr <- AddMetaData(
-      target_gr = addInput_gr,
-      annot_gr = closeByRegions_gr,
-      annotType_char = "region",
+    
+    ###  Add Annotations  ###
+    # Add inputRegion annotation if available
+    if (analysisSite_logi | nullInput_logi) {
+      addInput_gr <- results_gr
+    } else {
+      
+      addInput_gr <- AddMetaData(
+        target_gr = results_gr,
+        annot_gr = inputRegions_gr,
+        annotType_char = "region",
+        genome = genome,
+        annotLabel_char = "inputRegion"
+      )
+      
+    }
+    
+    # Add closeByRegion annotation if available
+    if (analysisSite_logi | nullClose_logi) {
+      addMetaData_gr <- addInput_gr
+    } else {
+      
+      addMetaData_gr <- AddMetaData(
+        target_gr = addInput_gr,
+        annot_gr = closeByRegions_gr,
+        annotType_char = "region",
+        genome = genome,
+        annotLabel_char = "closeByRegion"
+      )
+      
+    }
+    
+    # Add symbol annotation
+    coeditedAnno_gr <- AddMetaData(
+      target_gr = addMetaData_gr,
+      annot_gr = NULL,
+      annotType_char = "geneSymbol",
       genome = genome,
-      annotLabel_char = "closeByRegion"
+      annotLabel_char = "symbol"
     )
     
-  }
-  
-  # Add symbol annotation
-  coeditedAnno_gr <- AddMetaData(
-    target_gr = addMetaData_gr,
-    annot_gr = NULL,
-    annotType_char = "geneSymbol",
-    genome = genome,
-    annotLabel_char = "symbol"
-  )
-  
-  
-  ###  Wrangle Column Names  ###
-  # Order column names of final dataset
-  colPre_char <- c("estimate", "stdErr")
-  
-  # maybe turn this statement into a switch function once there are more
-  #   different types of outcome estimates later
-  if (!(all(colPre_char %in% colnames(results_df)))) {
-    colPre_char <- c("coef", "exp_coef", "se_coef")
-  }
-  
-  # Add on symbols
-  colPre_char <- c("symbol", colPre_char, "pValue", "fdr")
-  # Because the column order, if applicable, is "inputRegion" then
-  #   "closeByRegion", we want to left-concatenate them in reverse order
-  if (!analysisSite_logi) {
     
-    if (!nullClose_logi) {
-      colPre_char <- c("closeByRegion", colPre_char)
-    }
-    if (!nullInput_logi) {
-      colPre_char <- c("inputRegion", colPre_char)
+    ###  Wrangle Column Names  ###
+    # Order column names of final dataset
+    colPre_char <- c("estimate", "stdErr")
+    
+    # maybe turn this statement into a switch function once there are more
+    #   different types of outcome estimates later
+    if (!(all(colPre_char %in% colnames(results_df)))) {
+      colPre_char <- c("coef", "exp_coef", "se_coef")
     }
     
-  }
-  colOrder_char <- c("seqnames", "start", "end", "width", colPre_char)
-  
-  # colRoot_char <- c("seqnames", "start", "end", "width")
-  # if (analysisSite_logi |
-  #     (!analysisSite_logi & nullInput_logi & nullClose_logi)) {
-  #   colOrder_char <- c(colRoot_char, colPre_char)
-  # } else if (!analysisSite_logi & !(nullInput_logi) & nullClose_logi) {
-  #   colOrder_char <- c(colRoot_char, "inputRegion", colPre_char)
-  # } else if (!analysisSite_logi & nullInput_logi & !(nullClose_logi)) {
-  #   colOrder_char <- c(colRoot_char, "closeByRegion", colPre_char)
-  # } else if (!analysisSite_logi & !(nullInput_logi) & !(nullClose_logi)) {
-  #   colOrder_char <- c(
-  #     colRoot_char, "inputRegion", "closeByRegion", colPre_char
-  #   )
-  # }
-  
-  # Organize final annotation dataframe
-  dat <- data.frame(coeditedAnno_gr)
-  dat$seqnames <- as.character(dat$seqnames)
-  
-  dat[ ,colOrder_char]
+    # Add on symbols
+    colPre_char <- c("symbol", colPre_char, "pValue", "fdr")
+    # Because the column order, if applicable, is "inputRegion" then
+    #   "closeByRegion", we want to left-concatenate them in reverse order
+    if (!analysisSite_logi) {
+      
+      if (!nullClose_logi) {
+        colPre_char <- c("closeByRegion", colPre_char)
+      }
+      if (!nullInput_logi) {
+        colPre_char <- c("inputRegion", colPre_char)
+      }
+      
+    }
+    colOrder_char <- c("seqnames", "start", "end", "width", colPre_char)
+    
+    # Organize final annotation dataframe
+    dat <- data.frame(coeditedAnno_gr)
+    dat$seqnames <- as.character(dat$seqnames)
+    
+    dat[ ,colOrder_char]
   
 }

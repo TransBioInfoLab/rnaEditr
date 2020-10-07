@@ -57,190 +57,191 @@ TestSingleRegion <- function(rnaEdit_num,
                              modelPrep_ls,
                              respType = c("binary", "continuous", "survival")){
   
-  respType <- match.arg(respType)
-  
-  # Convert rnaEdit_num to rnaEditOne_df with sample names to be merged
-  #   into final df later.
-  rnaEditOne_df <- data.frame(
-    sample = names(rnaEdit_num),
-    rnaEditSummary = rnaEdit_num,
-    row.names = NULL,
-    stringsAsFactors = FALSE
-  )
-  
-  # Merge pheno_df and rnaEditOne_df
-  rnaEditOnePheno_df <- merge(
-    x = modelPrep_ls$pheno_df,
-    y = rnaEditOne_df,
-    by = "sample"
-  )
-  
-  # Fit model
-  switch(
-    respType,
-    "binary" = {
+    respType <- match.arg(respType)
+    
+    # Convert rnaEdit_num to rnaEditOne_df with sample names to be merged
+    #   into final df later.
+    rnaEditOne_df <- data.frame(
+      sample = names(rnaEdit_num),
+      rnaEditSummary = rnaEdit_num,
+      row.names = NULL,
+      stringsAsFactors = FALSE
+    )
+    
+    # Merge pheno_df and rnaEditOne_df
+    rnaEditOnePheno_df <- merge(
+      x = modelPrep_ls$pheno_df,
+      y = rnaEditOne_df,
+      by = "sample"
+    )
+    
+    # Fit model
+    switch(
+      respType,
+      "binary" = {
+        
+        if (is.null(modelPrep_ls$minSize)) {
+          stop(
+  "minSize can't be NULL. Please use function CountSamplesPerGroup to find it!"
+          )
+        } else if (modelPrep_ls$minSize < 10) {
+          
+          .LOGISTFTest(
+            modelFormula_char = modelPrep_ls$modelFormula_char,
+            rnaEditOnePheno_df = rnaEditOnePheno_df
+          )
+          
+        } else {
+          
+          .GLMTest(
+            modelFormula_char = modelPrep_ls$modelFormula_char,
+            rnaEditOnePheno_df = rnaEditOnePheno_df,
+            family = binomial(link = "logit")
+          )
+          
+        }
+        
+      },
       
-      if (is.null(modelPrep_ls$minSize)) {
-        stop(
-"minSize can't be NULL. Please use function CountSamplesPerGroup to find it!")
-      } else if (modelPrep_ls$minSize < 10) {
-        
-        .LOGISTFTest(
-          modelFormula_char = modelPrep_ls$modelFormula_char,
-          rnaEditOnePheno_df = rnaEditOnePheno_df
-        )
-        
-      } else {
+      "continuous" = {
         
         .GLMTest(
           modelFormula_char = modelPrep_ls$modelFormula_char,
           rnaEditOnePheno_df = rnaEditOnePheno_df,
-          family = binomial(link = "logit")
+          family = gaussian(link = "identity")
+        )
+      
+      },
+      
+      "survival" = {
+        
+        .CoxPHTest(
+          modelFormula_char = modelPrep_ls$modelFormula_char,
+          rnaEditOnePheno_df = rnaEditOnePheno_df
         )
         
       }
-      
-    },
+    )
+  }
+  
+  
+  # Firth Bias-Corrected Logistic
+  .LOGISTFTest <- function(modelFormula_char, rnaEditOnePheno_df){
     
-    "continuous" = {
-      
-      .GLMTest(
-        modelFormula_char = modelPrep_ls$modelFormula_char,
-        rnaEditOnePheno_df = rnaEditOnePheno_df,
-        family = gaussian(link = "identity")
+    f <- tryCatch({
+      logistf(
+        formula = as.formula(modelFormula_char),
+        data = rnaEditOnePheno_df
       )
+    }, warning = function(w){
+      NULL
+    }, error = function(e){
+      NULL
+    })
     
-    },
-    
-    "survival" = {
+    if (is.null(f)) {
       
-      .CoxPHTest(
-        modelFormula_char = modelPrep_ls$modelFormula_char,
-        rnaEditOnePheno_df = rnaEditOnePheno_df
+      result_df <- data.frame(
+        estimate = NA_real_,
+        stdErr = NA_real_,
+        pValue = 1
       )
+      
+    } else {
+      
+      result_df <- data.frame(
+        estimate = coef(f)["rnaEditSummary"],
+        stdErr = sqrt(diag(vcov(f)))["rnaEditSummary"],
+        pValue = drop1(f)["rnaEditSummary", "P-value"],
+        stringsAsFactors = FALSE
+      )
+      rownames(result_df) <- NULL
       
     }
-  )
-}
-
-
-# Firth Bias-Corrected Logistic
-.LOGISTFTest <- function(modelFormula_char, rnaEditOnePheno_df){
-  
-  f <- tryCatch({
-    logistf(
-      formula = as.formula(modelFormula_char),
-      data = rnaEditOnePheno_df
-    )
-  }, warning = function(w){
-    NULL
-  }, error = function(e){
-    NULL
-  })
-  
-  if (is.null(f)) {
     
-    result_df <- data.frame(
-      estimate = NA_real_,
-      stdErr = NA_real_,
-      pValue = 1
-    )
-    
-  } else {
-    
-    result_df <- data.frame(
-      estimate = coef(f)["rnaEditSummary"],
-      stdErr = sqrt(diag(vcov(f)))["rnaEditSummary"],
-      pValue = drop1(f)["rnaEditSummary", "P-value"],
-      stringsAsFactors = FALSE
-    )
-    rownames(result_df) <- NULL
+    result_df
     
   }
   
-  result_df
   
-}
-
-
-# Ordinary Least Squares / Logistic
-.GLMTest <- function(modelFormula_char,
-                     rnaEditOnePheno_df,
-                     family){
-  
-  f <- tryCatch({
-    glm(
-      formula = as.formula(modelFormula_char),
-      family = family,
-      data = rnaEditOnePheno_df
-    )
-  }, warning = function(w){
-    NULL
-  }, error = function(e){
-    NULL
-  })
-  
-  if (is.null(f)) {
+  # Ordinary Least Squares / Logistic
+  .GLMTest <- function(modelFormula_char,
+                       rnaEditOnePheno_df,
+                       family){
     
-    result_df <- data.frame(
-      estimate = NA_real_,
-      stdErr = NA_real_,
-      pValue = 1
-    )
+    f <- tryCatch({
+      glm(
+        formula = as.formula(modelFormula_char),
+        family = family,
+        data = rnaEditOnePheno_df
+      )
+    }, warning = function(w){
+      NULL
+    }, error = function(e){
+      NULL
+    })
     
-  } else {
+    if (is.null(f)) {
+      
+      result_df <- data.frame(
+        estimate = NA_real_,
+        stdErr = NA_real_,
+        pValue = 1
+      )
+      
+    } else {
+      
+      result_df <- data.frame(
+        estimate = coef(summary(f))["rnaEditSummary", "Estimate"],
+        stdErr = coef(summary(f))["rnaEditSummary", "Std. Error"],
+        # Regardless of the statistical test, the p-value is in column four
+        pValue = coef(summary(f))["rnaEditSummary", 4]
+      )
+      rownames(result_df) <- NULL
+      
+    }
     
-    result_df <- data.frame(
-      estimate = coef(summary(f))["rnaEditSummary", "Estimate"],
-      stdErr = coef(summary(f))["rnaEditSummary", "Std. Error"],
-      # Regardless of the statistical test, the p-value is in column four
-      pValue = coef(summary(f))["rnaEditSummary", 4]
-    )
-    rownames(result_df) <- NULL
-    
-  }
-  
-  result_df
-  
-}
-
-
-# CoxPH
-.CoxPHTest <- function(modelFormula_char, rnaEditOnePheno_df){
-  
-  f <- tryCatch({
-    coxph(
-      formula = as.formula(modelFormula_char),
-      data = rnaEditOnePheno_df
-    )
-  }, warning = function(w){
-    NULL
-  }, error = function(e){
-    NULL
-  })
-  
-  if (is.null(f)) {
-    
-    result_df <- data.frame(
-      coef = NA_real_,
-      exp_coef = NA_real_,
-      se_coef = NA_real_,
-      pValue = 1
-    )
-    
-  } else {
-    
-    result_df <- data.frame(
-      coef = coef(summary(f))["rnaEditSummary", "coef"],
-      exp_coef = coef(summary(f))["rnaEditSummary", "exp(coef)"],
-      se_coef = coef(summary(f))["rnaEditSummary", "se(coef)"],
-      pValue = coef(summary(f))["rnaEditSummary", "Pr(>|z|)"]
-    )
-    rownames(result_df) <- NULL
+    result_df
     
   }
   
-  result_df
+  
+  # CoxPH
+  .CoxPHTest <- function(modelFormula_char, rnaEditOnePheno_df){
+    
+    f <- tryCatch({
+      coxph(
+        formula = as.formula(modelFormula_char),
+        data = rnaEditOnePheno_df
+      )
+    }, warning = function(w){
+      NULL
+    }, error = function(e){
+      NULL
+    })
+    
+    if (is.null(f)) {
+      
+      result_df <- data.frame(
+        coef = NA_real_,
+        exp_coef = NA_real_,
+        se_coef = NA_real_,
+        pValue = 1
+      )
+      
+    } else {
+      
+      result_df <- data.frame(
+        coef = coef(summary(f))["rnaEditSummary", "coef"],
+        exp_coef = coef(summary(f))["rnaEditSummary", "exp(coef)"],
+        se_coef = coef(summary(f))["rnaEditSummary", "se(coef)"],
+        pValue = coef(summary(f))["rnaEditSummary", "Pr(>|z|)"]
+      )
+      rownames(result_df) <- NULL
+      
+    }
+    
+    result_df
   
 }
 

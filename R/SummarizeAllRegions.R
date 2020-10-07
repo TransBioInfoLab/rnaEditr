@@ -56,52 +56,54 @@ SummarizeAllRegions <- function(regions_gr,
                                 selectMethod = MedianSites,
                                 progressBar = "time", ...){
 
-  # parallel <- register_cores(cores)
-  
-  sites_mat <- do.call(rbind, strsplit(row.names(rnaEditMatrix), split = ":"))
-  sites_df <- data.frame(
-    site = row.names(rnaEditMatrix),
-    chr = sites_mat[, 1],
-    pos = as.integer(sites_mat[, 2]),
-    stringsAsFactors = FALSE
-  )
-  
-  sites_gr <- makeGRangesFromDataFrame(
-    df = sites_df,
-    start.field = "pos",
-    end.field = "pos"
-  )
-  
-  hits <- data.frame(
-    findOverlaps(
-      query = regions_gr,
-      subject = sites_gr
+    # parallel <- register_cores(cores)
+    
+    sites_mat <- do.call(
+      rbind, strsplit(row.names(rnaEditMatrix), split = ":")
     )
-  )
-  
-  regions_df <- data.frame(regions_gr)
-  regions_df$seqnames <- as.character(regions_df$seqnames)
-  
-  summarizedRegions_df <- adply(
-    .data = regions_df,
-    .margins = 1,
-    .fun = function(row){
-      SummarizeSingleRegion(
-        region_df = row,
-        rnaEditMatrix = rnaEditMatrix[unique(hits$subjectHits),],
-        selectMethod = selectMethod,
-        ...
+    sites_df <- data.frame(
+      site = row.names(rnaEditMatrix),
+      chr = sites_mat[, 1],
+      pos = as.integer(sites_mat[, 2]),
+      stringsAsFactors = FALSE
+    )
+    
+    sites_gr <- makeGRangesFromDataFrame(
+      df = sites_df,
+      start.field = "pos",
+      end.field = "pos"
+    )
+    
+    hits <- data.frame(
+      findOverlaps(
+        query = regions_gr,
+        subject = sites_gr
       )
-    },
-    # .parallel = parallel,
-    .progress = progressBar
-  )
-
-  keepCol_lgl <- colnames(summarizedRegions_df) != "strand"
-  sum_df <- summarizedRegions_df[, keepCol_lgl]
+    )
+    
+    regions_df <- data.frame(regions_gr)
+    regions_df$seqnames <- as.character(regions_df$seqnames)
+    
+    summarizedRegions_df <- adply(
+      .data = regions_df,
+      .margins = 1,
+      .fun = function(row){
+        SummarizeSingleRegion(
+          region_df = row,
+          rnaEditMatrix = rnaEditMatrix[unique(hits$subjectHits),],
+          selectMethod = selectMethod,
+          ...
+        )
+      },
+      # .parallel = parallel,
+      .progress = progressBar
+    )
   
-  class(sum_df) <- c("rnaEdit_df", "data.frame")
-  
-  sum_df
+    keepCol_lgl <- colnames(summarizedRegions_df) != "strand"
+    sum_df <- summarizedRegions_df[, keepCol_lgl]
+    
+    class(sum_df) <- c("rnaEdit_df", "data.frame")
+    
+    sum_df
 
 }

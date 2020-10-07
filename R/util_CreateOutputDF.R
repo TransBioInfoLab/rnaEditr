@@ -85,77 +85,77 @@ CreateOutputDF <- function(keepSites_df,
                            returnAllSites = FALSE,
                            verbose = TRUE){
 
-  if (!returnAllSites & (sum(keepContiguousSites_df$subregion) == 0)) {
-
-    if (verbose) {
-      message(
-        "No co-edited subregions found. Returning empty GRanges object."
-      )
+    if (!returnAllSites & (sum(keepContiguousSites_df$subregion) == 0)) {
+  
+      if (verbose) {
+        message(
+          "No co-edited subregions found. Returning empty GRanges object."
+        )
+      }
+      return(data.frame())
+  
     }
-    return(data.frame())
-
-  }
-  
-  output_df <- merge(
-    x = keepSites_df,
-    y = keepContiguousSites_df,
-    by = "site",
-    all.x = TRUE
-  )
-  
-  output_df[is.na(output_df)] <- 0
-  
-  # to make sure final dataset does not have dis-continuous subregion numbers,
-  #   we will only include subregions with "keepminPairwiseCor = 1" here, and 
-  #   then re-number subregions.
-  keepminPairwiseCor_df <- keepminPairwiseCor_df[
-    keepminPairwiseCor_df$keepminPairwiseCor == 1,
-  ]
-  
-  keepminPairwiseCor_df$subregion <- seq_len(
-    nrow(keepminPairwiseCor_df)
-  )
-  
-  output_df <- merge(
-    output_df, keepminPairwiseCor_df,
-    by = "subregion",
-    all.x = TRUE
-  )
-  
-  output_df <- output_df[
-    !is.na(output_df$keepminPairwiseCor) &
-      output_df$keepminPairwiseCor == 1,
-  ]
-  
-  # dataset is not ordered after line 108-112 where we merge by "subregion" 
-  #   only, but since each "subregion" contains more than one site, so their
-  #   index number well not be ordered anymore. So we are ordering here.
-  output_df <- output_df[
-    order(output_df$subregion, output_df$ind),
-  ]
-  
-  if (nrow(output_df) == 0){
     
-    if (verbose) {
-      message(
-        "No co-edited subregions found. Returning empty GRanges object."
-      )
+    output_df <- merge(
+      x = keepSites_df,
+      y = keepContiguousSites_df,
+      by = "site",
+      all.x = TRUE
+    )
+    
+    output_df[is.na(output_df)] <- 0
+    
+    # to make sure final dataset does not have dis-continuous subregion 
+    #   numbers, we will only include subregions with "keepminPairwiseCor = 1"
+    #   here, and then re-number subregions.
+    keepminPairwiseCor_df <- keepminPairwiseCor_df[
+      keepminPairwiseCor_df$keepminPairwiseCor == 1,
+    ]
+    
+    keepminPairwiseCor_df$subregion <- seq_len(
+      nrow(keepminPairwiseCor_df)
+    )
+    
+    output_df <- merge(
+      output_df, keepminPairwiseCor_df,
+      by = "subregion",
+      all.x = TRUE
+    )
+    
+    output_df <- output_df[
+      !is.na(output_df$keepminPairwiseCor) &
+        output_df$keepminPairwiseCor == 1,
+    ]
+    
+    # dataset is not ordered after line 108-112 where we merge by "subregion" 
+    #   only, but since each "subregion" contains more than one site, so their
+    #   index number well not be ordered anymore. So we are ordering here.
+    output_df <- output_df[
+      order(output_df$subregion, output_df$ind),
+    ]
+    
+    if (nrow(output_df) == 0){
+      
+      if (verbose) {
+        message(
+          "No co-edited subregions found. Returning empty GRanges object."
+        )
+      }
+      return(data.frame())
+      
     }
-    return(data.frame())
     
-  }
-  
-  output2_df <- OrderSitesByLocation(output_df$site)
-  
-  data.frame(
-    site = output_df$site,
-    chr = output2_df$chr,
-    pos = output2_df$pos,
-    r_drop = output_df$r_drop,
-    keep = output_df$keep,
-    keep_contiguous = output_df$subregion,
-    regionMinPairwiseCor = output_df$minPairwiseCor,
-    keep_regionMinPairwiseCor = output_df$keepminPairwiseCor
-  )
+    output2_df <- OrderSitesByLocation(output_df$site)
+    
+    data.frame(
+      site = output_df$site,
+      chr = output2_df$chr,
+      pos = output2_df$pos,
+      r_drop = output_df$r_drop,
+      keep = output_df$keep,
+      keep_contiguous = output_df$subregion,
+      regionMinPairwiseCor = output_df$minPairwiseCor,
+      keep_regionMinPairwiseCor = output_df$keepminPairwiseCor
+    )
   
 }

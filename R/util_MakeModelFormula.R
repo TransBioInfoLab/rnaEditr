@@ -39,21 +39,21 @@ MakeModelFormula <- function(responses_char,
                              covariates_char = NULL,
                              respType = c("binary", "continuous", "survival")){
   
-  respType <- match.arg(respType)
-  
-  if (respType == "survival") {
-    responses_char <- "surv_object"
-  }
-  
-  mainMod_char <- paste(responses_char, "rnaEditSummary", sep = " ~ ")
-  
-  if (is.null(covariates_char)) {
-    mainMod_char
-  } else {
+    respType <- match.arg(respType)
     
-    covMod_char <- paste(covariates_char, collapse = " + ")
-    paste(mainMod_char, covMod_char, sep = " + ")
+    if (respType == "survival") {
+      responses_char <- "surv_object"
+    }
     
-  }
+    mainMod_char <- paste(responses_char, "rnaEditSummary", sep = " ~ ")
+    
+    if (is.null(covariates_char)) {
+      mainMod_char
+    } else {
+      
+      covMod_char <- paste(covariates_char, collapse = " + ")
+      paste(mainMod_char, covMod_char, sep = " + ")
+      
+    }
   
 }

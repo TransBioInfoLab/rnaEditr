@@ -56,54 +56,54 @@ GetMinPairwiseCor <- function (rnaEditCluster_mat,
                                probes_ls,
                                method = c("spearman", "pearson")) {
   
-  method <- match.arg(method)
-  
-  # Calculate min pairwise correlation for each subregion
-  # If users want all regions regardless of correlation, return all regions
-  if (minPairCorr == -1) {
+    method <- match.arg(method)
     
-    nProbes <- length(probes_ls)
-    minPairwiseCor_num <- rep(NA_real_, nProbes)
-    keepminPairwiseCor <- rep(TRUE, nProbes)
+    # Calculate min pairwise correlation for each subregion
+    # If users want all regions regardless of correlation, return all regions
+    if (minPairCorr == -1) {
+      
+      nProbes <- length(probes_ls)
+      minPairwiseCor_num <- rep(NA_real_, nProbes)
+      keepminPairwiseCor <- rep(TRUE, nProbes)
+      
+    } else {
+      
+      minPairwiseCor_num <- vapply(
+        X = probes_ls,
+        FUN = function(probes){
+          dat <- rnaEditCluster_mat[, probes]
+          cor_matrix <- cor(
+            dat, method = method, use = "pairwise.complete.obs"
+          )
+          min(cor_matrix)
+        },
+        FUN.VALUE = numeric(1)
+      )
+      
+      keepminPairwiseCor <- minPairwiseCor_num > minPairCorr
+      
+    }
     
-  } else {
-    
-    minPairwiseCor_num <- vapply(
-      X = probes_ls,
-      FUN = function(probes){
-        dat <- rnaEditCluster_mat[, probes]
-        cor_matrix <- cor(
-          dat, method = method, use = "pairwise.complete.obs"
-        )
-        min(cor_matrix)
-      },
-      FUN.VALUE = numeric(1)
+    # Create data frame of coedited regions
+    df <- data.frame(
+      subregion = names(probes_ls),
+      keepminPairwiseCor = as.numeric(keepminPairwiseCor),
+      minPairwiseCor = minPairwiseCor_num,
+      stringsAsFactors = FALSE
     )
     
-    keepminPairwiseCor <- minPairwiseCor_num > minPairCorr
+    if (all(keepminPairwiseCor == FALSE)) {
+      probes_ls <- NULL
+    } else {
+      probes_ls <- probes_ls[keepminPairwiseCor]
+    }
     
-  }
-  
-  # Create data frame of coedited regions
-  df <- data.frame(
-    subregion = names(probes_ls),
-    keepminPairwiseCor = as.numeric(keepminPairwiseCor),
-    minPairwiseCor = minPairwiseCor_num,
-    stringsAsFactors = FALSE
-  )
-  
-  if (all(keepminPairwiseCor == FALSE)) {
-    probes_ls <- NULL
-  } else {
-    probes_ls <- probes_ls[keepminPairwiseCor]
-  }
-  
-  # Return
-  return(
-    list(
-      keepminPairwiseCor_df = df,
-      probesFiltered_ls     = probes_ls
+    # Return
+    return(
+      list(
+        keepminPairwiseCor_df = df,
+        probesFiltered_ls     = probes_ls
+      )
     )
-  )
   
 }

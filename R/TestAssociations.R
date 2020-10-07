@@ -91,121 +91,121 @@ TestAssociations <- function(rnaEdit_df,
                              progressBar = "time",
                              orderByPval = TRUE){
 
-  respType <- match.arg(respType)
-  
-  if (!("rnaEdit_df" %in% class(rnaEdit_df))) {
-    stop("Please use function CreateEditingTable() or SummarizeAllRegions() to 
-         create rnaEdit_df.")
-  }
-  
-  metaDataCol_char <- c("seqnames", "start", "end", "width")
-  dat <- rnaEdit_df[, !(colnames(rnaEdit_df) %in% metaDataCol_char)]
-  
-  # Make model formula
-  formula_char <- MakeModelFormula(
-    responses_char = responses_char,
-    covariates_char = covariates_char,
-    respType = respType
-  )
-
-  # Make model preparation list
-  model_ls <- switch(
+    respType <- match.arg(respType)
     
-    respType,
-    "binary" = {
-      
-      # To fit GLM with categorical outcomes, must factor character response.
-      pheno_df[, responses_char] <- as.factor(
-        pheno_df[, responses_char]
-      )
-      
-      # Fit model
-      minSize <- CountSamplesPerGroup(
-        pheno_df = pheno_df,
-        responses_char = responses_char,
-        covariates_char = covariates_char
-      )
-      
-      list(
-        modelFormula_char = formula_char,
-        pheno_df = pheno_df,
-        minSize = minSize
-      )
-      
-    },
-    
-    "continuous" = {
-      
-      list(
-        modelFormula_char = formula_char,
-        pheno_df = pheno_df,
-        minSize = NULL
-      )
-      
-    },
-    
-    "survival" = {
-      
-      # update: add a check to make sure second ele of responses_char only
-      #   have two unique values/options/levels. (adter dropping missingness)
-      #   make a warning, add link to coxph documentation
-      
-      # The `[` operator works slightly differently on tibbles, so be aware.
-      levs <- sum(
-        !is.na(unique(pheno_df[, responses_char[2]]))
-      )
-      
-      if (levs != 2) {
-        warning(
-          "Please make sure status indicator has only two values or levels!
-         For more details, please see documentation for argument 
-         'responses_char' by using ?TestAssociations.",
-          immediate. = TRUE
-        )
-      }
-      
-      
-      # Create a survival object, used as a response variable in Cox model
-      pheno_df$surv_object <- Surv(
-        time = pheno_df[, responses_char[1]],
-        event = pheno_df[, responses_char[2]]
-      )
-      
-      list(
-        modelFormula_char = formula_char,
-        pheno_df = pheno_df,
-        minSize = NULL
-      )
-      
+    if (!("rnaEdit_df" %in% class(rnaEdit_df))) {
+      stop("Please use function CreateEditingTable() or SummarizeAllRegions()
+           to create rnaEdit_df.")
     }
     
-  )
+    metaDataCol_char <- c("seqnames", "start", "end", "width")
+    dat <- rnaEdit_df[, !(colnames(rnaEdit_df) %in% metaDataCol_char)]
+    
+    # Make model formula
+    formula_char <- MakeModelFormula(
+      responses_char = responses_char,
+      covariates_char = covariates_char,
+      respType = respType
+    )
   
-  # Fit model
-  results_ls <- alply(
-    .data = dat,
-    .margins = 1,
-    .fun = function(row){
-      TestSingleRegion(
-        # we use unlist() instead of as.numeric() here to preserve colnames
-        rnaEdit_num = unlist(row), 
-        modelPrep_ls = model_ls,
-        respType = respType
-      )
-    },
-    .progress = progressBar
-  )
-
-  results_df <- do.call(rbind, results_ls)
-  results_df$fdr <- p.adjust(results_df$pValue, method = "fdr")
+    # Make model preparation list
+    model_ls <- switch(
+      
+      respType,
+      "binary" = {
+        
+        # To fit GLM with categorical outcomes, must factor character response.
+        pheno_df[, responses_char] <- as.factor(
+          pheno_df[, responses_char]
+        )
+        
+        # Fit model
+        minSize <- CountSamplesPerGroup(
+          pheno_df = pheno_df,
+          responses_char = responses_char,
+          covariates_char = covariates_char
+        )
+        
+        list(
+          modelFormula_char = formula_char,
+          pheno_df = pheno_df,
+          minSize = minSize
+        )
+        
+      },
+      
+      "continuous" = {
+        
+        list(
+          modelFormula_char = formula_char,
+          pheno_df = pheno_df,
+          minSize = NULL
+        )
+        
+      },
+      
+      "survival" = {
+        
+        # update: add a check to make sure second ele of responses_char only
+        #   have two unique values/options/levels. (adter dropping missingness)
+        #   make a warning, add link to coxph documentation
+        
+        # The `[` operator works slightly differently on tibbles, so be aware.
+        levs <- sum(
+          !is.na(unique(pheno_df[, responses_char[2]]))
+        )
+        
+        if (levs != 2) {
+          warning(
+            "Please make sure status indicator has only two values or levels!
+           For more details, please see documentation for argument 
+           'responses_char' by using ?TestAssociations.",
+            immediate. = TRUE
+          )
+        }
+        
+        
+        # Create a survival object, used as a response variable in Cox model
+        pheno_df$surv_object <- Surv(
+          time = pheno_df[, responses_char[1]],
+          event = pheno_df[, responses_char[2]]
+        )
+        
+        list(
+          modelFormula_char = formula_char,
+          pheno_df = pheno_df,
+          minSize = NULL
+        )
+        
+      }
+      
+    )
+    
+    # Fit model
+    results_ls <- alply(
+      .data = dat,
+      .margins = 1,
+      .fun = function(row){
+        TestSingleRegion(
+          # we use unlist() instead of as.numeric() here to preserve colnames
+          rnaEdit_num = unlist(row), 
+          modelPrep_ls = model_ls,
+          respType = respType
+        )
+      },
+      .progress = progressBar
+    )
   
-  results_meta_df <- cbind(rnaEdit_df[, metaDataCol_char], results_df)
-  
-  # Order final results
-  if (orderByPval) {
-    results_meta_df[order(results_meta_df$pValue), ]
-  } else {
-    results_meta_df
-  }
+    results_df <- do.call(rbind, results_ls)
+    results_df$fdr <- p.adjust(results_df$pValue, method = "fdr")
+    
+    results_meta_df <- cbind(rnaEdit_df[, metaDataCol_char], results_df)
+    
+    # Order final results
+    if (orderByPval) {
+      results_meta_df[order(results_meta_df$pValue), ]
+    } else {
+      results_meta_df
+    }
  
 }

@@ -50,47 +50,47 @@ GetSitesLocations <- function(region_df,
                               output = c("locationsOnly", "locationsAndValues")
 ){
   
-  output <- match.arg(output)
-  
-  rnaEditMatrix_sites_df <- OrderSitesByLocation(
-    sites_char = row.names(rnaEditMatrix),
-    output = "dataframe"
-  )
-  
-  sites_gr <- makeGRangesFromDataFrame(
-    df = rnaEditMatrix_sites_df,
-    start.field = "pos",
-    end.field = "pos"
-  )   
-  
-  sitesOrdered_gr <- subsetByOverlaps(
-    x = sites_gr,
-    ranges = makeGRangesFromDataFrame(df = region_df)
-  )
-  
-  sitesOrdered_df <- data.frame(
-    "chr" = as.character(seqnames(sitesOrdered_gr)),
-    "pos" = start(sitesOrdered_gr)
-  )
-  
-  if (nrow(sitesOrdered_df) == 0) {
-    return(NULL)
-  }
-  
-  if (output == "locationsOnly"){
-    out <- sitesOrdered_df
-  } else {
+    output <- match.arg(output)
     
-    # Extract rna editing cluster by ordered input sites
-    out <- rnaEditMatrix[
-      match(
-        paste0(sitesOrdered_df$chr,":",sitesOrdered_df$pos),
-        row.names(rnaEditMatrix)
-      ),
-    ]
+    rnaEditMatrix_sites_df <- OrderSitesByLocation(
+      sites_char = row.names(rnaEditMatrix),
+      output = "dataframe"
+    )
     
-  }
-  
-  out
+    sites_gr <- makeGRangesFromDataFrame(
+      df = rnaEditMatrix_sites_df,
+      start.field = "pos",
+      end.field = "pos"
+    )   
+    
+    sitesOrdered_gr <- subsetByOverlaps(
+      x = sites_gr,
+      ranges = makeGRangesFromDataFrame(df = region_df)
+    )
+    
+    sitesOrdered_df <- data.frame(
+      "chr" = as.character(seqnames(sitesOrdered_gr)),
+      "pos" = start(sitesOrdered_gr)
+    )
+    
+    if (nrow(sitesOrdered_df) == 0) {
+      return(NULL)
+    }
+    
+    if (output == "locationsOnly"){
+      out <- sitesOrdered_df
+    } else {
+      
+      # Extract rna editing cluster by ordered input sites
+      out <- rnaEditMatrix[
+        match(
+          paste0(sitesOrdered_df$chr,":",sitesOrdered_df$pos),
+          row.names(rnaEditMatrix)
+        ),
+      ]
+      
+    }
+    
+    out
   
 }

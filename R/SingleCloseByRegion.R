@@ -54,62 +54,61 @@ SingleCloseByRegion <- function(region_df,
                                 maxGap = 50,
                                 minSites = 3){
   
- 
-  sitesOrdered_df <- GetSitesLocations(
-    region_df = region_df,
-    rnaEditMatrix = rnaEditMatrix,
-    output = "locationsOnly"
-  )
-  
-  if (is.null(sitesOrdered_df)) {
-   
-    return(NULL)
-    
-  } else {
-    
-    # Find close by clusters
-    sitesOrdered_df$cluster <- clusterMaker(
-      chr = sitesOrdered_df$chr,
-      pos = sitesOrdered_df$pos,
-      maxGap = maxGap
+    sitesOrdered_df <- GetSitesLocations(
+      region_df = region_df,
+      rnaEditMatrix = rnaEditMatrix,
+      output = "locationsOnly"
     )
     
-    # Count number of sites in each cluster
-    clusterLength <- data.frame(table(sitesOrdered_df$cluster))
-    
-    # Include clusters with number of sites >= minSites
-    clusterLength_flt <- clusterLength[clusterLength$Freq >= minSites, ]
-    
-    sitesOrdered_flt_df <- sitesOrdered_df[
-      sitesOrdered_df$cluster %in% clusterLength_flt$Var1,
-    ]
-    
-    if (nrow(sitesOrdered_flt_df) == 0) {
-      
+    if (is.null(sitesOrdered_df)) {
+     
       return(NULL)
       
     } else {
       
-      # Find start and end position for each cluster
-      start_df <- aggregate(
-        pos ~ chr + cluster,
-        data = sitesOrdered_flt_df,
-        min)
-      
-      end_df <- aggregate(
-        pos ~ chr + cluster,
-        data = sitesOrdered_flt_df,
-        max)
-      
-      # Convert data frame to GRanges
-      GRanges(
-        seqnames = start_df$chr,
-        ranges = IRanges(
-          start = start_df$pos,
-          end = end_df$pos
-        )
+      # Find close by clusters
+      sitesOrdered_df$cluster <- clusterMaker(
+        chr = sitesOrdered_df$chr,
+        pos = sitesOrdered_df$pos,
+        maxGap = maxGap
       )
       
+      # Count number of sites in each cluster
+      clusterLength <- data.frame(table(sitesOrdered_df$cluster))
+      
+      # Include clusters with number of sites >= minSites
+      clusterLength_flt <- clusterLength[clusterLength$Freq >= minSites, ]
+      
+      sitesOrdered_flt_df <- sitesOrdered_df[
+        sitesOrdered_df$cluster %in% clusterLength_flt$Var1,
+      ]
+      
+      if (nrow(sitesOrdered_flt_df) == 0) {
+        
+        return(NULL)
+        
+      } else {
+        
+        # Find start and end position for each cluster
+        start_df <- aggregate(
+          pos ~ chr + cluster,
+          data = sitesOrdered_flt_df,
+          min)
+        
+        end_df <- aggregate(
+          pos ~ chr + cluster,
+          data = sitesOrdered_flt_df,
+          max)
+        
+        # Convert data frame to GRanges
+        GRanges(
+          seqnames = start_df$chr,
+          ranges = IRanges(
+            start = start_df$pos,
+            end = end_df$pos
+          )
+        )
+        
+      }
     }
-  }
 }

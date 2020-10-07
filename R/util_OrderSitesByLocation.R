@@ -34,29 +34,29 @@
 #'
 OrderSitesByLocation <- function(sites_char, output = c("dataframe","vector")){
   
-  output <- match.arg(output)
+    output <- match.arg(output)
+    
+    # Separate site into chromosome and position. Eg.
+    #   "chr22:41327462" --> c("chr22", "41327462")
   
-  # Separate site into chromosome and position. Eg.
-  #   "chr22:41327462" --> c("chr22", "41327462")
-
-  sites_mat <- do.call(rbind, strsplit(sites_char, split = ":"))
-  sites_df <- data.frame(
-    site = sites_char,
-    chr = sites_mat[, 1],
-    pos = as.integer(sites_mat[, 2]),
-    stringsAsFactors = FALSE
-  )
-  
-  # Order data
-  sites_order_df <- sites_df[order(sites_df$chr, sites_df$pos), ]
-  
-  # Select and return output ###
-  if (output == "dataframe") {
-    out <- sites_order_df
-  } else {
-    out <- sites_order_df$site
-  }
-  
-  out
+    sites_mat <- do.call(rbind, strsplit(sites_char, split = ":"))
+    sites_df <- data.frame(
+      site = sites_char,
+      chr = sites_mat[, 1],
+      pos = as.integer(sites_mat[, 2]),
+      stringsAsFactors = FALSE
+    )
+    
+    # Order data
+    sites_order_df <- sites_df[order(sites_df$chr, sites_df$pos), ]
+    
+    # Select and return output ###
+    if (output == "dataframe") {
+      out <- sites_order_df
+    } else {
+      out <- sites_order_df$site
+    }
+    
+    out
   
 }

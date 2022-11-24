@@ -131,7 +131,7 @@ $$logit(Pr(cancer\;status = “yes”)) \sim RNA\;editing\;level$$
 First, we use the command below to check the distribution of variable 
 `sample_type`. Please note that `rnaEditr` will fit firth corrected logistic 
 regression instead of regular logistic regression models for binary outcomes, 
-when the minimum sample size per group is less than 5.
+when the minimum sample size per group is less than 10.
 
 ```{r}
 table(pheno_df$sample_type)

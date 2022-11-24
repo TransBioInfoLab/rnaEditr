@@ -21,7 +21,7 @@
 #'   decide on whether to use regular logistic regression or Firth corrected 
 #'   logistic regression (\url{"https://www.jstor.org/stable/2336755"}).  
 #'
-#' @importFrom stats as.formula binomial coef glm lm p.adjust drop1 vcov
+#' @importFrom stats as.formula binomial coef glm lm p.adjust vcov
 #' @importFrom stats gaussian 
 #' @importFrom survival Surv coxph
 #' @importFrom logistf logistf 
@@ -152,7 +152,8 @@ TestSingleRegion <- function(rnaEdit_num,
       result_df <- data.frame(
         estimate = coef(f)["rnaEditSummary"],
         stdErr = sqrt(diag(vcov(f)))["rnaEditSummary"],
-        pValue = drop1(f)["rnaEditSummary", "P-value"],
+        # pValue = drop1(f)["rnaEditSummary", "P-value"],
+        pValue = f$prob["rnaEditSummary"],
         stringsAsFactors = FALSE
       )
       rownames(result_df) <- NULL
